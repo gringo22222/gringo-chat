@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b1020"><title>Private Room — Chat</title>
+<style>
+:root{color-scheme:dark;--bg:#090e1b;--panel:#111a2d;--panel2:#17233a;--line:#263653;--muted:#93a4bf;--text:#eef4ff;--blue:#5577ff;--blue2:#3458ed;--green:#36d399}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -20%,#1b2b55 0%,transparent 55%),var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh;display:grid;place-items:center;padding:22px}
+.shell{width:min(100%,900px);height:min(850px,calc(100vh - 44px));min-height:560px;background:rgba(17,26,45,.94);border:1px solid var(--line);border-radius:24px;box-shadow:0 30px 100px #0008;display:flex;flex-direction:column;overflow:hidden}
+header{padding:20px 24px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;background:#111a2de8}
+.logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#7692ff,#3856df);display:grid;place-items:center;font-size:22px;box-shadow:0 8px 24px #4566ff55}
+.brand{flex:1}.brand strong{display:block;font-size:16px;letter-spacing:.04em}.brand span,.sub{font-size:12px;color:var(--muted)}
+.status{display:flex;align-items:center;gap:8px;color:#a9bad3;font-size:12px}.dot{width:8px;height:8px;border-radius:50%;background:#66748b}.dot.on{background:var(--green);box-shadow:0 0 12px #36d39999}
+.top-actions{display:flex;gap:8px}.ghost,.primary{border:1px solid var(--line);border-radius:11px;padding:10px 13px;color:var(--text);background:#1a2740;cursor:pointer;font-weight:600}.ghost:hover{background:#243554}.primary{background:var(--blue2);border-color:transparent}.primary:hover{background:var(--blue)}
+main{flex:1;min-height:0;display:flex;flex-direction:column;padding:22px 24px 16px}
+.welcome{text-align:center;color:var(--muted);font-size:13px;margin:0 auto 18px;max-width:500px}
+.messages{flex:1;overflow:auto;display:flex;flex-direction:column;gap:14px;padding:4px 4px 18px}
+.msg{max-width:min(76%,580px);display:flex;flex-direction:column;gap:5px;align-self:flex-start}.msg.mine{align-self:flex-end}.meta{font-size:11px;color:var(--muted);padding:0 5px;display:flex;gap:8px}.mine .meta{justify-content:flex-end}
+.bubble{padding:12px 15px;border-radius:17px 17px 17px 5px;background:#1b2942;border:1px solid #2a3a59;white-space:pre-wrap;overflow-wrap:anywhere}.mine .bubble{background:linear-gradient(135deg,#4c6df2,#3654d6);border-color:#6680ff;border-radius:17px 17px 5px 17px}
+.composer{border:1px solid var(--line);background:#0d1526;border-radius:17px;padding:9px;display:flex;gap:10px;align-items:flex-end}.composer textarea{flex:1;resize:none;max-height:130px;min-height:42px;background:transparent;border:0;outline:0;color:var(--text);font:inherit;padding:10px}.composer textarea::placeholder{color:#7385a2}.send{width:44px;height:44px;border:0;border-radius:13px;background:var(--blue2);color:white;font-size:19px;cursor:pointer}.send:disabled{opacity:.45;cursor:not-allowed}
+footer{padding:0 24px 17px;color:#71829f;font-size:11px;display:flex;justify-content:space-between;gap:10px}
+.overlay{position:fixed;inset:0;background:#050914eF;display:grid;place-items:center;padding:20px;z-index:5}.setup{width:min(100%,470px);background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:26px;box-shadow:0 25px 80px #0009}.setup h1{margin:0 0 8px;font-size:23px}.setup p{color:var(--muted);font-size:13px}.setup label{display:block;color:#bdcbe0;font-size:12px;margin:17px 0 7px}.setup input{width:100%;background:#0b1323;border:1px solid var(--line);border-radius:11px;padding:13px;color:white;outline:none}.setup input:focus{border-color:#6682ff}.setup .primary{width:100%;margin-top:17px;padding:13px}.note{font-size:11px!important;line-height:1.5}.hidden{display:none!important}
+@media(max-width:600px){body{padding:0}.shell{height:100dvh;min-height:0;border-radius:0;border:0}header{padding:15px}.top-actions .ghost{padding:9px;font-size:12px}main{padding:16px 13px 12px}footer{padding:0 14px 12px}.msg{max-width:88%}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header>
+ <div class="logo">✦</div><div class="brand"><strong>PRIVATE ROOM</strong><span>Personal encrypted conversation</span></div>
+ <div class="status"><i id="dot" class="dot"></i><span id="status">Connecting…</span></div>
+ <div class="top-actions"><button class="ghost" id="copyLink">Copy invite</button></div>
+</header>
+<main>
+ <p class="welcome" id="welcome">This is your private two-person room. Share the invite link only with the person you want to chat with.</p>
+ <div class="messages" id="messages" aria-live="polite"></div>
+ <div class="composer"><textarea id="message" rows="1" maxlength="2000" placeholder="Write a message… (Enter to send)"></textarea><button class="send" id="send" title="Send" disabled>➤</button></div>
+</main>
+<footer><span>End-to-end encrypted message contents</span><span id="roomLabel">Private room</span></footer>
+</div>
+<div class="overlay" id="setupOverlay"><div class="setup">
+ <div class="logo">✦</div><h1>Set up your private room</h1>
+ <p>Connect this chat to your free Supabase Realtime project. Your room key stays in the invite link.</p>
+ <label for="url">Supabase Project URL</label><input id="url" placeholder="https://your-project.supabase.co" autocomplete="url">
+ <label for="key">Supabase anon / publishable key</label><input id="key" placeholder="Paste your public anon key">
+ <button class="primary" id="connect">Connect to chat</button>
+ <p class="note">The anon key is designed to be public. Never paste a service_role key here. For a private invite, share the generated link only with your friend.</p>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const $=id=>document.getElementById(id);
+let supabase, channel, room, cryptoKey, connected=false, seen=new Set();
+const enc=new TextEncoder(), dec=new TextDecoder();
+function b64u(bytes){return btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+function unb64u(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return Uint8Array.from(atob(s),c=>c.charCodeAt(0))}
+function random(n){const a=new Uint8Array(n);crypto.getRandomValues(a);return a}
+function parseHash(){const p=new URLSearchParams(location.hash.slice(1));return {room:p.get('room'),key:p.get('key')}}
+async function makeKey(raw){return crypto.subtle.importKey('raw',unb64u(raw),{name:'AES-GCM'},false,['encrypt','decrypt'])}
+async function encrypt(text){const iv=random(12),data=await crypto.subtle.encrypt({name:'AES-GCM',iv},cryptoKey,enc.encode(text));return {iv:b64u(iv),data:b64u(data),id:b64u(random(12)),time:Date.now()}}
+async function decrypt(payload){const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64u(payload.iv)},cryptoKey,unb64u(payload.data));return dec.decode(plain)}
+function setStatus(text,on){$('status').textContent=text;$('dot').className='dot'+(on?' on':'');$('send').disabled=!on}
+function addMessage(text,mine,time,id){if(seen.has(id))return;seen.add(id);const wrap=document.createElement('div');wrap.className='msg'+(mine?' mine':'');const meta=document.createElement('div');meta.className='meta';meta.textContent=(mine?'You':'Friend')+' · '+new Date(time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});const bubble=document.createElement('div');bubble.className='bubble';bubble.textContent=text;wrap.append(meta,bubble);$('messages').append(wrap);$('messages').scrollTop=$('messages').scrollHeight}
+async function receive(payload){try{const text=await decrypt(payload);addMessage(text,false,payload.time,payload.id);if(document.hidden&&'Notification'in window&&Notification.permission==='granted')new Notification('New private message',{body:text.slice(0,120)});}catch(e){console.warn('Ignored invalid message',e)}}
+async function connect(){
+ const cfgUrl=$('url').value.trim().replace(/\/$/,''),cfgKey=$('key').value.trim();
+ if(!/^https:\/\/.+\.supabase\.co$/.test(cfgUrl)||!cfgKey){alert('Enter a valid Supabase URL and anon key.');return}
+ localStorage.setItem('pr_url',cfgUrl);localStorage.setItem('pr_key',cfgKey);
+ await start(cfgUrl,cfgKey);
+}
+async function start(url,key){
+ if(!window.supabase){alert('Could not load the chat library. Check your internet connection.');return}
+ const h=parseHash();
+ if(!h.room||!h.key){room=b64u(random(18));const secret=b64u(random(32));history.replaceState(null,'',location.pathname+location.search+'#room='+room+'&key='+secret);cryptoKey=await makeKey(secret)}
+ else{room=h.room;cryptoKey=await makeKey(h.key)}
+ $('roomLabel').textContent='Room '+room.slice(0,8);
+ supabase=window.supabase.createClient(url,key);
+ channel=supabase.channel('private-room-'+room,{config:{broadcast:{self:false},presence:{key:b64u(random(6))}}});
+ channel.on('broadcast',{event:'message'},({payload})=>receive(payload));
+ channel.subscribe(async status=>{if(status==='SUBSCRIBED'){connected=true;setStatus('Connected',true);$('setupOverlay').classList.add('hidden');if('Notification'in window&&Notification.permission==='default')$('welcome').textContent='Connected. Enable browser notifications if you want alerts while this tab is in the background.';}else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){setStatus('Connection error',false)}else{setStatus('Connecting…',false)}});
+}
+async function send(){const text=$('message').value.trim();if(!text||!connected)return;const payload=await encrypt(text);await channel.send({type:'broadcast',event:'message',payload});addMessage(text,true,payload.time,payload.id);$('message').value='';$('message').style.height='auto'}
+$('send').addEventListener('click',send);
+$('message').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
+$('message').addEventListener('input',e=>{e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,130)+'px'});
+$('copyLink').addEventListener('click',async()=>{await navigator.clipboard.writeText(location.href);$('copyLink').textContent='Copied!';setTimeout(()=>$('copyLink').textContent='Copy invite',1500)});
+$('connect').addEventListener('click',connect);
+(async()=>{const u=localStorage.getItem('pr_url'),k=localStorage.getItem('pr_key');if(u&&k){$('url').value=u;$('key').value=k;try{await start(u,k)}catch(e){console.error(e)}}else{$('status').textContent='Not connected'}})();
+</script>
+</body></html>
